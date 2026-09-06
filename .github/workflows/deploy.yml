@@ -25,9 +25,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      - name: Place compiled assets at the Pages project path
+        run: cp -R dist/client/hEART2026/_next dist/client/_next
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist/client/hEART2026
+          path: dist/client
   deploy:
     environment:
       name: github-pages

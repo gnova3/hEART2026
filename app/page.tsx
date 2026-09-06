@@ -8,6 +8,7 @@ import {
   Check,
   ChevronRight,
   ExternalLink,
+  Info,
   MapPin,
   Search,
   SlidersHorizontal,
@@ -25,6 +26,14 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import {
+  Popover,
+  PopoverContent,
+  PopoverDescription,
+  PopoverHeader,
+  PopoverTitle,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 
 type Paper = {
   id: string;
@@ -418,8 +427,58 @@ export default function Home() {
                 aria-label="Topic similarity map"
               >
                 <div className="panel-heading">
-                  <div>
+                  <div className="landscape-heading">
                     <span>SIMILARITY LANDSCAPE</span>
+                    <Popover>
+                      <PopoverTrigger
+                        className="landscape-info-button"
+                        aria-label="How the similarity landscape works"
+                      >
+                        <Info aria-hidden="true" />
+                      </PopoverTrigger>
+                      <PopoverContent
+                        className="similarity-explainer"
+                        align="start"
+                        side="bottom"
+                        sideOffset={8}
+                      >
+                        <PopoverHeader>
+                          <PopoverTitle>How to read this landscape</PopoverTitle>
+                          <PopoverDescription>
+                            It is a map of shared research language—not a ranking
+                            of paper quality.
+                          </PopoverDescription>
+                        </PopoverHeader>
+                        <dl>
+                          <div>
+                            <dt>Each dot</dt>
+                            <dd>represents one conference paper.</dd>
+                          </div>
+                          <div>
+                            <dt>Nearby dots</dt>
+                            <dd>
+                              use similar terms in their titles, abstracts and
+                              author keywords. They may share a transport problem,
+                              method, mode or policy question.
+                            </dd>
+                          </div>
+                          <div>
+                            <dt>Colour</dt>
+                            <dd>shows the paper’s programme topic.</dd>
+                          </div>
+                          <div>
+                            <dt>Highlighted dots</dt>
+                            <dd>match your current search and filters.</dd>
+                          </div>
+                        </dl>
+                        <p className="similarity-method-note">
+                          The positions are calculated with TF–IDF text weighting,
+                          cosine similarity and a two-dimensional projection. The
+                          axes have no fixed transport meaning, so interpret local
+                          neighbourhoods rather than left, right, high or low.
+                        </p>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                   <p>
                     Nearby papers share language, methods and themes. Select a

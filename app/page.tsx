@@ -561,7 +561,16 @@ export default function Home() {
         onSave={() => activePaper && toggleSaved(activePaper.id)}
       />
       <footer>
-        <span>hEART26 · Created by Gabriel Nova</span>
+        <span>
+          hEART26 · Created by{' '}
+          <a
+            href="https://www.cityai-lab.nl/ai-choice-modelling/"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Gabriel Nova
+          </a>
+        </span>
         <span>
           232 abstracts · 894 author keywords · Programme data from EasyChair
         </span>

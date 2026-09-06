@@ -1401,10 +1401,15 @@ nav button.active {
 .saved-list svg {
   width: 15px;
 }
-footer a {
+footer > a {
   display: flex;
   gap: 5px;
   align-items: center;
+}
+footer span a {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
 }
 footer svg {
   width: 13px;

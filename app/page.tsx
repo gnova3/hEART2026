@@ -76,6 +76,7 @@ type ModelContext = {
 
 const dates = ['All days', '2026-09-29', '2026-09-30', '2026-10-01'];
 const types = ['All formats', 'Podium', 'Poster'];
+const publicBasePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
 const trackColours = [
   '#007a9e',
   '#df7f2e',
@@ -151,8 +152,11 @@ export default function Home() {
     }
   }, []);
   useEffect(() => {
-    void fetch('./data/papers.json')
-      .then((r) => r.json() as Promise<Catalogue>)
+    void fetch(`${publicBasePath}/data/papers.json`)
+      .then((r) => {
+        if (!r.ok) throw new Error(`Catalogue request failed: ${r.status}`);
+        return r.json() as Promise<Catalogue>;
+      })
       .then((data) => setCatalogue(data))
       .catch(() => setCatalogue(null));
   }, []);
@@ -273,7 +277,7 @@ export default function Home() {
         >
           <img
             className="brand-logo"
-            src="./heart2026-logo.png"
+            src={`${publicBasePath}/heart2026-logo.png`}
             alt="hEART2026 — Université Gustave Eiffel"
           />
         </button>
@@ -729,7 +733,7 @@ function ResearchView({
         <h1>
           What{' '}
           <span className="heart26-wordmark" aria-label="hEART26">
-            <img src="./heart2026-logo.png" alt="" />
+            <img src={`${publicBasePath}/heart2026-logo.png`} alt="" />
           </span>
           <br />
           is thinking about.

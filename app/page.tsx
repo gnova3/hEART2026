@@ -307,25 +307,6 @@ export default function Home() {
             My papers <span className="nav-count">{savedIds.length}</span>
           </button>
         </nav>
-        <div className="conference-links" aria-label="hEART conference links">
-          <a href="https://heart2026.fr/" target="_blank" rel="noreferrer">
-            Home
-          </a>
-          <a
-            href="https://heart2026.fr/committees"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Committees
-          </a>
-          <a
-            href="https://heart2026.fr/keynotes-speakers"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Keynotes
-          </a>
-        </div>
       </header>
       {view === 'explore' && (
         <>

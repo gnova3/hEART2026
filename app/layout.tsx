@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import './globals.css';
 
-const title = 'hEART 2026';
+const title = 'hEART26';
 const description =
-  'Explore 232 hEART 2026 papers by topic, research line, session and similarity.';
+  'Explore 232 hEART2026 papers by topic, session and similarity.';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://gnova3.github.io/hEART2026/'),

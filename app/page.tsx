@@ -128,16 +128,19 @@ export default function Home() {
   const [selectedType, setSelectedType] = useState('All formats');
   const [view, setView] = useState<View>('explore');
   const [activePaper, setActivePaper] = useState<Paper | null>(null);
-  const [savedIds, setSavedIds] = useState<string[]>(() => {
-    if (typeof window === 'undefined') return [];
+  const [savedIds, setSavedIds] = useState<string[]>([]);
+  useEffect(() => {
     try {
-      return JSON.parse(
-        localStorage.getItem('heart2026-saved') || '[]',
-      ) as string[];
+      const stored = JSON.parse(
+        window.localStorage.getItem('heart2026-saved') || '[]',
+      ) as unknown;
+      if (Array.isArray(stored)) {
+        setSavedIds(stored.filter((id): id is string => typeof id === 'string'));
+      }
     } catch {
-      return [];
+      setSavedIds([]);
     }
-  });
+  }, []);
   useEffect(() => {
     void fetch('./data/papers.json')
       .then((r) => r.json() as Promise<Catalogue>)
@@ -181,7 +184,7 @@ export default function Home() {
           name: 'configure_paper_explorer',
           title: 'Configure hEART paper explorer',
           description:
-            'Set the visible topic query and optional conference filters in the hEART 2026 paper explorer.',
+            'Set the visible topic query and optional conference filters in the hEART2026 paper explorer.',
           inputSchema: {
             type: 'object',
             additionalProperties: false,
@@ -211,7 +214,7 @@ export default function Home() {
               format?: string;
             };
             if (v.track && !allowedTracks.includes(v.track))
-              throw new Error('Unknown research line');
+              throw new Error('Unknown topic');
             if (v.date && !dates.includes(v.date))
               throw new Error('Unknown conference day');
             if (v.format && !types.includes(v.format))
@@ -257,12 +260,12 @@ export default function Home() {
             setView('explore');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          aria-label="hEART 2026 home"
+          aria-label="hEART2026 home"
         >
           <img
             className="brand-logo"
             src="./heart2026-logo.png"
-            alt="hEART 2026 — Université Gustave Eiffel"
+            alt="hEART2026 — Université Gustave Eiffel"
           />
         </button>
         <nav aria-label="Primary navigation">
@@ -276,7 +279,7 @@ export default function Home() {
             className={view === 'research' ? 'active' : ''}
             onClick={() => setView('research')}
           >
-            Research lines
+            Topics
           </button>
           <button
             className={view === 'programme' ? 'active' : ''}
@@ -315,7 +318,7 @@ export default function Home() {
         <>
           <section className="intro">
             <div>
-              <p className="eyebrow">Explore the hEART 2026 programme</p>
+              <p className="eyebrow">Explore the hEART26 programme</p>
               <h1>To start, enter a topic, author, day</h1>
             </div>
             <div className="stats" aria-label="Conference catalogue statistics">
@@ -412,7 +415,7 @@ export default function Home() {
               </aside>
               <section
                 className="map-panel"
-                aria-label="Research similarity map"
+                aria-label="Topic similarity map"
               >
                 <div className="panel-heading">
                   <div>
@@ -451,8 +454,7 @@ export default function Home() {
                 </div>
                 <p className="map-caption">
                   <Sparkles /> Position is calculated from title, abstract and
-                  author keywords; colour identifies the programme research
-                  line.
+                  author keywords; colour identifies the programme topic.
                 </p>
               </section>
               <aside className="results-panel">
@@ -515,7 +517,7 @@ export default function Home() {
         onSave={() => activePaper && toggleSaved(activePaper.id)}
       />
       <footer>
-        <span>hEART 2026 · Created by Gabriel Nova</span>
+        <span>hEART26 · Created by Gabriel Nova</span>
         <span>
           232 abstracts · 894 author keywords · Programme data from EasyChair
         </span>
@@ -664,16 +666,16 @@ function ResearchView({
   return (
     <section className="section-page">
       <header className="section-hero">
-        <p className="eyebrow">Research landscape</p>
+        <p className="eyebrow">Topic landscape</p>
         <h1>
-          What hEART
+          What{' '}
+          <span className="heart26-wordmark" aria-label="hEART26">
+            <img src="./heart2026-logo.png" alt="" />
+          </span>
           <br />
           is thinking about.
         </h1>
-        <p>
-          Research lines reveal the programme’s intellectual structure. Keywords
-          show which methods, modes and policy questions recur across sessions.
-        </p>
+        <p>Explore topics and Keywords across sessions.</p>
       </header>
       <div className="research-grid">
         <section className="track-chart">
@@ -681,7 +683,7 @@ function ResearchView({
             <span>01</span>
             <div>
               <p>Programme composition</p>
-              <h2>Research lines</h2>
+              <h2>Topics</h2>
             </div>
           </div>
           {catalogue.stats.tracks.map((track, index) => (
@@ -755,10 +757,10 @@ function ResearchView({
           </article>
           <article>
             <strong>{catalogue.stats.tracks[0]?.count}</strong>
-            <span>papers in the largest line</span>
+            <span>papers in the largest topic</span>
             <p>
               Choice modelling, preferences and travel behaviour is the
-              programme’s most represented research line.
+              programme’s most represented topic.
             </p>
           </article>
           <article>
@@ -786,44 +788,74 @@ function ProgrammeView({
   onOpen: (paper: Paper) => void;
   onSave: (id: string) => void;
 }) {
-  const [day, setDay] = useState('2026-09-29');
-  const dayPapers = papers.filter((p) => p.date === day);
-  const sessions = [...new Set(dayPapers.map((p) => p.session))];
+  const [day, setDay] = useState('All days');
+  const [author, setAuthor] = useState('');
+  const [topic, setTopic] = useState('All topics');
+  const programmeTopics = [...new Set(papers.map((p) => p.track))].sort();
+  const filteredPapers = papers.filter((paper) => {
+    const matchesDay = day === 'All days' || paper.date === day;
+    const matchesTopic = topic === 'All topics' || paper.track === topic;
+    const authorTerm = author.trim().toLowerCase();
+    const matchesAuthor =
+      !authorTerm ||
+      paper.authors.some((name) => name.toLowerCase().includes(authorTerm)) ||
+      paper.presenter.toLowerCase().includes(authorTerm);
+    return matchesDay && matchesTopic && matchesAuthor;
+  });
+  const sessions = [
+    ...new Set(filteredPapers.map((p) => `${p.date}|${p.session}`)),
+  ];
   return (
     <section className="section-page">
       <header className="section-hero programme-hero">
-        <p className="eyebrow">Plan your conference</p>
-        <h1>
-          Three days.
-          <br />
-          One research route.
-        </h1>
-        <p>
-          Browse talks in programme order and save promising papers to a
-          personal shortlist stored on this device.
-        </p>
+        <h1>Plan your conference</h1>
       </header>
-      <div className="day-tabs">
-        {dates.slice(1).map((date, index) => (
-          <button
-            className={day === date ? 'active' : ''}
-            key={date}
-            onClick={() => setDay(date)}
+      <div className="programme-filters">
+        <label>
+          <span>Day</span>
+          <select value={day} onChange={(event) => setDay(event.target.value)}>
+            {dates.map((date) => (
+              <option key={date} value={date}>
+                {date === 'All days' ? date : formatDay(date, true)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>Author</span>
+          <Input
+            value={author}
+            onChange={(event) => setAuthor(event.target.value)}
+            placeholder="e.g. Bierlaire"
+          />
+        </label>
+        <label>
+          <span>Topic</span>
+          <select
+            value={topic}
+            onChange={(event) => setTopic(event.target.value)}
           >
-            <span>DAY 0{index + 1}</span>
-            <strong>{formatDay(date, true)}</strong>
-            <small>{papers.filter((p) => p.date === date).length} papers</small>
-          </button>
-        ))}
+            <option>All topics</option>
+            {programmeTopics.map((name) => (
+              <option key={name}>{name}</option>
+            ))}
+          </select>
+        </label>
+        <strong>{filteredPapers.length} papers</strong>
       </div>
       <div className="agenda">
-        {sessions.map((session) => {
-          const items = dayPapers.filter((p) => p.session === session);
+        {sessions.map((sessionKey) => {
+          const [sessionDate, session] = sessionKey.split('|');
+          const items = filteredPapers.filter(
+            (p) => p.date === sessionDate && p.session === session,
+          );
           return (
-            <section className="session-block" key={session}>
+            <section className="session-block" key={sessionKey}>
               <header>
                 <div>
-                  <span>{items[0].sessionInterval}</span>
+                  <span>
+                    {formatDay(sessionDate)} · {items[0].sessionInterval}
+                  </span>
                   <h2>{shortSession(session)}</h2>
                 </div>
                 <p>
@@ -884,10 +916,7 @@ function SavedView({
       <header className="section-hero">
         <p className="eyebrow">Your shortlist</p>
         <h1>My papers.</h1>
-        <p>
-          Saved papers stay on this device. Use this view as a compact research
-          and conference itinerary.
-        </p>
+        <p>Saved papers on this device. Use this view as a conference itinerary.</p>
       </header>
       {papers.length === 0 ? (
         <div className="empty-state">

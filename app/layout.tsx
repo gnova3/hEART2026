@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 
-const title = 'hEART 2026 Paper Explorer';
+const title = 'hEART 2026';
 const description =
   'Explore 232 hEART 2026 papers by topic, research line, session and similarity.';
 

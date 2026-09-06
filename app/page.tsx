@@ -65,13 +65,6 @@ type ModelContext = {
   ) => void | Promise<void>;
 };
 
-const examples = [
-  'accessibility',
-  'machine learning',
-  'public transport',
-  'choice modelling',
-  'transport equity',
-];
 const dates = ['All days', '2026-09-29', '2026-09-30', '2026-10-01'];
 const types = ['All formats', 'Podium', 'Poster'];
 const trackColours = [
@@ -105,6 +98,14 @@ function scorePaper(paper: Paper, query: string) {
   const abstract = paper.abstract.toLowerCase();
   const keywords = paper.keywords.join(' ').toLowerCase();
   const authors = paper.authors.join(' ').toLowerCase();
+  const conferenceMoment = [
+    paper.date,
+    formatDay(paper.date, true),
+    paper.session,
+    paper.sessionInterval,
+  ]
+    .join(' ')
+    .toLowerCase();
   const phrase = query.trim().toLowerCase();
   return (
     terms.reduce(
@@ -113,23 +114,16 @@ function scorePaper(paper: Paper, query: string) {
         (title.includes(term) ? 6 : 0) +
         (keywords.includes(term) ? 5 : 0) +
         (abstract.includes(term) ? 1 : 0) +
-        (authors.includes(term) ? 3 : 0),
+        (authors.includes(term) ? 3 : 0) +
+        (conferenceMoment.includes(term) ? 4 : 0),
       phrase && title.includes(phrase) ? 8 : 0,
     ) / terms.length
   );
 }
-function Logo() {
-  return (
-    <span className="brand-mark" aria-hidden="true">
-      h<span>EA</span>RT
-    </span>
-  );
-}
-
 export default function Home() {
   const [catalogue, setCatalogue] = useState<Catalogue | null>(null);
-  const [query, setQuery] = useState('accessibility');
-  const [selectedTrack, setSelectedTrack] = useState('All research lines');
+  const [query, setQuery] = useState('');
+  const [selectedTrack, setSelectedTrack] = useState('All topics');
   const [selectedDate, setSelectedDate] = useState('All days');
   const [selectedType, setSelectedType] = useState('All formats');
   const [view, setView] = useState<View>('explore');
@@ -159,7 +153,7 @@ export default function Home() {
     return catalogue.papers
       .filter(
         (p) =>
-          selectedTrack === 'All research lines' || p.track === selectedTrack,
+          selectedTrack === 'All topics' || p.track === selectedTrack,
       )
       .filter((p) => selectedDate === 'All days' || p.date === selectedDate)
       .filter((p) => selectedType === 'All formats' || p.type === selectedType)
@@ -180,7 +174,7 @@ export default function Home() {
       .modelContext;
     if (!context?.registerTool) return;
     const lifecycle = new AbortController();
-    const allowedTracks = ['All research lines', ...tracks];
+    const allowedTracks = ['All topics', ...tracks];
     void Promise.resolve(
       context.registerTool(
         {
@@ -250,7 +244,7 @@ export default function Home() {
     });
   }
   function resetFilters() {
-    setSelectedTrack('All research lines');
+    setSelectedTrack('All topics');
     setSelectedDate('All days');
     setSelectedType('All formats');
   }
@@ -263,13 +257,13 @@ export default function Home() {
             setView('explore');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          aria-label="hEART 2026 Explorer home"
+          aria-label="hEART 2026 home"
         >
-          <Logo />
-          <span>
-            <strong>Paper Explorer</strong>
-            <small>hEART 2026 · Lausanne</small>
-          </span>
+          <img
+            className="brand-logo"
+            src="./heart2026-logo.png"
+            alt="hEART 2026 — Université Gustave Eiffel"
+          />
         </button>
         <nav aria-label="Primary navigation">
           <button
@@ -297,34 +291,33 @@ export default function Home() {
             My papers <span className="nav-count">{savedIds.length}</span>
           </button>
         </nav>
-        <a
-          className="cityai"
-          href="https://www.epfl.ch/labs/cit-ai/"
-          target="_blank"
-          rel="noreferrer"
-        >
-          CITY<span>AI</span> LAB
-        </a>
+        <div className="conference-links" aria-label="hEART conference links">
+          <a href="https://heart2026.fr/" target="_blank" rel="noreferrer">
+            Home
+          </a>
+          <a
+            href="https://heart2026.fr/committees"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Committees
+          </a>
+          <a
+            href="https://heart2026.fr/keynotes-speakers"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Keynotes
+          </a>
+        </div>
       </header>
       {view === 'explore' && (
         <>
           <section className="intro">
             <div>
-              <p className="eyebrow">
-                14th Symposium of the European Association for Research in
-                Transportation
-              </p>
-              <h1>
-                Find the research
-                <br />
-                that moves you.
-              </h1>
+              <p className="eyebrow">Explore the hEART 2026 programme</p>
+              <h1>To start, enter a topic, author, day</h1>
             </div>
-            <p className="intro-copy">
-              Explore every hEART 2026 paper by topic, connection and conference
-              moment. Search the abstracts, discover neighbouring ideas, and
-              decide where to go next.
-            </p>
             <div className="stats" aria-label="Conference catalogue statistics">
               <span>
                 <strong>{catalogue?.stats.paperCount ?? '—'}</strong> papers
@@ -339,16 +332,13 @@ export default function Home() {
           </section>
           <section className="explorer">
             <div className="search-panel">
-              <div className="section-label">
-                <span>01</span> Topic search
-              </div>
               <label className="search-box">
                 <Search aria-hidden="true" />
                 <Input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   aria-label="Search paper titles, abstracts, authors and keywords"
-                  placeholder="What are you interested in?"
+                  placeholder="e.g. public transport, Michel Bierlaire, Wednesday"
                 />
                 {query && (
                   <button
@@ -360,32 +350,24 @@ export default function Home() {
                   </button>
                 )}
               </label>
-              <div className="suggestions" aria-label="Suggested searches">
-                <span>Try</span>
-                {examples.map((example) => (
-                  <button key={example} onClick={() => setQuery(example)}>
-                    {example}
-                  </button>
-                ))}
-              </div>
             </div>
             <div className="workspace">
               <aside className="filters">
                 <div className="filter-title">
                   <SlidersHorizontal aria-hidden="true" /> Refine
                 </div>
-                <label htmlFor="track-filter">Research line</label>
+                <label htmlFor="track-filter">Topic</label>
                 <select
                   id="track-filter"
                   value={selectedTrack}
                   onChange={(e) => setSelectedTrack(e.target.value)}
                 >
-                  <option>All research lines</option>
+                  <option>All topics</option>
                   {tracks.map((track) => (
                     <option key={track}>{track}</option>
                   ))}
                 </select>
-                <label htmlFor="day-filter">Conference day</label>
+                <label htmlFor="day-filter">Day</label>
                 <select
                   id="day-filter"
                   value={selectedDate}
@@ -416,7 +398,7 @@ export default function Home() {
                   <span>papers across the programme</span>
                 </div>
                 <div className="legend">
-                  <span>Research line colours</span>
+                  <span>Themes or topics</span>
                   {catalogue?.stats.tracks.slice(0, 5).map((track, index) => (
                     <button
                       key={track.name}
@@ -435,7 +417,6 @@ export default function Home() {
                 <div className="panel-heading">
                   <div>
                     <span>SIMILARITY LANDSCAPE</span>
-                    <h2>Ideas, mapped.</h2>
                   </div>
                   <p>
                     Nearby papers share language, methods and themes. Select a
@@ -477,8 +458,8 @@ export default function Home() {
               <aside className="results-panel">
                 <div className="panel-heading compact">
                   <div>
-                    <span>BEST MATCHES</span>
-                    <h2>Start here.</h2>
+                    <span>SEARCH RESULTS</span>
+                    <h2>Papers</h2>
                   </div>
                   <strong>{query ? `“${query}”` : 'All papers'}</strong>
                 </div>
@@ -534,7 +515,7 @@ export default function Home() {
         onSave={() => activePaper && toggleSaved(activePaper.id)}
       />
       <footer>
-        <span>hEART 2026 Paper Explorer</span>
+        <span>hEART 2026 · Created by Gabriel Nova</span>
         <span>
           232 abstracts · 894 author keywords · Programme data from EasyChair
         </span>
@@ -610,7 +591,7 @@ function PaperDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="paper-dialog">
+      <DialogContent className="paper-dialog" initialFocus={false}>
         <DialogHeader>
           <div className="dialog-meta">
             <Badge variant="outline">{paper?.type}</Badge>

@@ -27,7 +27,7 @@ jobs:
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist/client
+          path: dist/client/hEART2026
   deploy:
     environment:
       name: github-pages

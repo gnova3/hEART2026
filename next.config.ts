@@ -6,7 +6,8 @@ const basePath = onGitHubPages ? '/hEART2026' : '';
 const nextConfig: NextConfig = {
   output: 'export',
   trailingSlash: true,
-  assetPrefix: basePath ? `${basePath}/` : '',
+  basePath,
+  assetPrefix: basePath,
   env: {
     NEXT_PUBLIC_BASE_PATH: basePath,
   },

@@ -1,21 +1,20 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import {
-  ArrowUpRight,
-  Bookmark,
-  CalendarDays,
-  Check,
-  ChevronRight,
-  ExternalLink,
-  Info,
-  MapPin,
-  Search,
-  SlidersHorizontal,
-  Sparkles,
-  Users,
-  X,
-} from 'lucide-react';
+import ArrowUpRight from 'lucide-react/dist/esm/icons/arrow-up-right.mjs';
+import Bookmark from 'lucide-react/dist/esm/icons/bookmark.mjs';
+import CalendarDays from 'lucide-react/dist/esm/icons/calendar-days.mjs';
+import Check from 'lucide-react/dist/esm/icons/check.mjs';
+import ChevronRight from 'lucide-react/dist/esm/icons/chevron-right.mjs';
+import ExternalLink from 'lucide-react/dist/esm/icons/external-link.mjs';
+import Info from 'lucide-react/dist/esm/icons/info.mjs';
+import MapPin from 'lucide-react/dist/esm/icons/map-pin.mjs';
+import NotebookPen from 'lucide-react/dist/esm/icons/notebook-pen.mjs';
+import Search from 'lucide-react/dist/esm/icons/search.mjs';
+import SlidersHorizontal from 'lucide-react/dist/esm/icons/sliders-horizontal.mjs';
+import Sparkles from 'lucide-react/dist/esm/icons/sparkles.mjs';
+import Users from 'lucide-react/dist/esm/icons/users.mjs';
+import X from 'lucide-react/dist/esm/icons/x.mjs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -26,6 +25,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Popover,
   PopoverContent,
@@ -139,6 +139,7 @@ export default function Home() {
   const [view, setView] = useState<View>('explore');
   const [activePaper, setActivePaper] = useState<Paper | null>(null);
   const [savedIds, setSavedIds] = useState<string[]>([]);
+  const [paperNotes, setPaperNotes] = useState<Record<string, string>>({});
   useEffect(() => {
     try {
       const stored = JSON.parse(
@@ -149,6 +150,24 @@ export default function Home() {
       }
     } catch {
       setSavedIds([]);
+    }
+  }, []);
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(
+        window.localStorage.getItem('heart2026-paper-notes') || '{}',
+      ) as unknown;
+      if (stored && typeof stored === 'object' && !Array.isArray(stored)) {
+        setPaperNotes(
+          Object.fromEntries(
+            Object.entries(stored).filter(
+              ([id, note]) => typeof id === 'string' && typeof note === 'string',
+            ),
+          ),
+        );
+      }
+    } catch {
+      setPaperNotes({});
     }
   }, []);
   useEffect(() => {
@@ -256,6 +275,15 @@ export default function Home() {
         ? current.filter((item) => item !== id)
         : [...current, id];
       localStorage.setItem('heart2026-saved', JSON.stringify(next));
+      return next;
+    });
+  }
+  function updatePaperNote(id: string, note: string) {
+    setPaperNotes((current) => {
+      const next = { ...current };
+      if (note) next[id] = note;
+      else delete next[id];
+      localStorage.setItem('heart2026-paper-notes', JSON.stringify(next));
       return next;
     });
   }
@@ -557,8 +585,12 @@ export default function Home() {
         paper={activePaper}
         open={!!activePaper}
         saved={activePaper ? savedIds.includes(activePaper.id) : false}
+        note={activePaper ? (paperNotes[activePaper.id] ?? '') : ''}
         onOpenChange={(open) => !open && setActivePaper(null)}
         onSave={() => activePaper && toggleSaved(activePaper.id)}
+        onNoteChange={(note) =>
+          activePaper && updatePaperNote(activePaper.id, note)
+        }
       />
       <footer>
         <span>
@@ -635,14 +667,18 @@ function PaperDialog({
   paper,
   open,
   saved,
+  note,
   onOpenChange,
   onSave,
+  onNoteChange,
 }: {
   paper: Paper | null;
   open: boolean;
   saved: boolean;
+  note: string;
   onOpenChange: (open: boolean) => void;
   onSave: () => void;
+  onNoteChange: (note: string) => void;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -701,6 +737,29 @@ function PaperDialog({
                 View in programme <ExternalLink />
               </a>
             </div>
+            <section className="paper-notes">
+              <div className="paper-notes-heading">
+                <div>
+                  <NotebookPen aria-hidden="true" />
+                  <h4>My notes</h4>
+                </div>
+                <span>{note ? 'Saved on this device' : 'Private to this device'}</span>
+              </div>
+              <label htmlFor={`paper-note-${paper.id}`}>
+                Add comments, questions or reminders about this paper
+              </label>
+              <Textarea
+                id={`paper-note-${paper.id}`}
+                value={note}
+                onChange={(event) => onNoteChange(event.target.value)}
+                placeholder="What would you like to remember or ask?"
+                rows={5}
+              />
+              <p>
+                Your note is saved automatically in this browser. It is not shared
+                with the paper authors or other attendees.
+              </p>
+            </section>
           </>
         )}
       </DialogContent>

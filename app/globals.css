@@ -913,6 +913,67 @@ nav button.active {
   border-radius: 0;
   padding: 0 14px;
 }
+.paper-notes {
+  padding: 20px;
+  border: 1px solid #b9dbe3;
+  background: #f5fbfc;
+}
+.paper-notes-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.paper-notes-heading > div {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.paper-notes-heading svg {
+  width: 16px;
+  height: 16px;
+  color: #007a9e;
+}
+.paper-dialog .paper-notes-heading h4 {
+  margin: 0;
+}
+.paper-notes-heading > span {
+  color: #55727a;
+  font-size: 10px;
+}
+.paper-notes label {
+  display: block;
+  margin-bottom: 8px;
+  color: #405c65;
+  font-size: 12px;
+  font-weight: 700;
+}
+.paper-notes textarea {
+  width: 100%;
+  min-height: 112px;
+  resize: vertical;
+  border: 1px solid #9ecbd5;
+  border-radius: 0;
+  background: #fff;
+  color: #29434b;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  box-shadow: none;
+}
+.paper-notes textarea:focus-visible {
+  border-color: #007a9e;
+  outline: 3px solid rgba(0, 122, 158, 0.16);
+  outline-offset: 1px;
+}
+.paper-dialog .paper-notes > p {
+  margin-top: 8px;
+  color: #60777e;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 10px;
+  line-height: 1.45;
+}
 
 .section-page {
   min-height: calc(100vh - 86px);

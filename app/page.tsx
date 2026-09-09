@@ -52,6 +52,8 @@ type Paper = {
   url: string;
   x: number;
   y: number;
+  most_similar_ids: string[];
+  most_similar_scores: string[];
 };
 type StatItem = { name: string; count: number };
 type Catalogue = {
@@ -73,6 +75,7 @@ type ModelContext = {
     options?: { signal?: AbortSignal },
   ) => void | Promise<void>;
 };
+type PaperDict = Record<string, Paper>;
 
 const dates = ['All days', '2026-09-29', '2026-09-30', '2026-10-01'];
 const types = ['All formats', 'Podium', 'Poster'];
@@ -195,6 +198,13 @@ export default function Home() {
       .map((p) => ({ ...p, score: scorePaper(p, query) }))
       .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title));
   }, [catalogue, query, selectedTrack, selectedDate, selectedType]);
+  const paperById = useMemo<PaperDict>(
+    () =>
+      catalogue
+        ? Object.fromEntries(catalogue.papers.map((p) => [p.id, p]))
+        : {},
+    [catalogue],
+  );
   const exactMatches = query ? filtered.filter((p) => p.score > 0) : filtered;
   const displayed = exactMatches.length ? exactMatches : filtered;
   const saved =
@@ -582,6 +592,8 @@ export default function Home() {
         />
       )}
       <PaperDialog
+        paperById={paperById}
+        savedIds={savedIds}
         paper={activePaper}
         open={!!activePaper}
         saved={activePaper ? savedIds.includes(activePaper.id) : false}
@@ -591,6 +603,8 @@ export default function Home() {
         onNoteChange={(note) =>
           activePaper && updatePaperNote(activePaper.id, note)
         }
+        onOpenPaper={setActivePaper}
+        onToggleSave={toggleSaved}
       />
       <footer>
         <span>
@@ -662,8 +676,54 @@ function PaperCard({
     </article>
   );
 }
+function PaperCardSimilarity({
+  paper,
+  rank,
+  sim_score,
+  saved,
+  onOpen,
+  onSave,
+}: {
+  paper: Paper & { score?: number };
+  rank: number;
+  maxScore: number;
+  saved: boolean;
+  onOpen: () => void;
+  onSave: () => void;
+}) {
+  const relevance =
+    sim_score ? Math.round((sim_score) * 100) : 0;
+  return (
+    <article className="paper-card">
+      <span className="rank">{String(rank).padStart(2, '0')}</span>
+      <div>
+        <div className="paper-meta">
+          <Badge variant="outline">{paper.type}</Badge>
+          <span>{relevance ? `${relevance}% relevance` : paper.track}</span>
+          <button
+            className={saved ? 'saved' : ''}
+            onClick={onSave}
+            aria-label={saved ? 'Remove from my papers' : 'Save to my papers'}
+          >
+            <Bookmark fill={saved ? 'currentColor' : 'none'} />
+          </button>
+        </div>
+        <button className="paper-title" onClick={onOpen}>
+          {paper.title}
+        </button>
+        <p className="authors">{paper.authors.join(', ')}</p>
+        <p className="schedule">
+          <CalendarDays /> {formatDay(paper.date)} ·{' '}
+          {paper.time || paper.sessionInterval} <MapPin /> {paper.room}
+        </p>
+      </div>
+    </article>
+  );
+}
 
 function PaperDialog({
+  paperById,
+  savedIds,
   paper,
   open,
   saved,
@@ -671,7 +731,11 @@ function PaperDialog({
   onOpenChange,
   onSave,
   onNoteChange,
+  onOpenPaper,
+  onToggleSave
 }: {
+  paperById: PaperDict;
+  savedIds: string[];
   paper: Paper | null;
   open: boolean;
   saved: boolean;
@@ -679,6 +743,8 @@ function PaperDialog({
   onOpenChange: (open: boolean) => void;
   onSave: () => void;
   onNoteChange: (note: string) => void;
+  onOpenPaper: (paper: Paper) => void;
+  onToggleSave: (id: string) => void;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -737,6 +803,28 @@ function PaperDialog({
                 View in programme <ExternalLink />
               </a>
             </div>
+            <section>
+              <h4>
+                Most Similar Papers
+              </h4>
+                <div className="similar-papers">
+                  {paper.most_similar_ids.map((pId, index) => {
+                    const targetPaper = paperById[pId];
+                    if (!targetPaper) return null; // Guard against missing dictionary entries
+
+                    return (
+                      <PaperCardSimilarity
+                        key={pId}
+                        paper={targetPaper}
+                        rank={index + 1}
+                        sim_score={paper.most_similar_scores[index]}
+                        saved={savedIds.includes(targetPaper.id)}
+                        onOpen={() => onOpenPaper(targetPaper)}
+                        onSave={() => onToggleSave(targetPaper.id)}
+                      />
+                    );
+                  })}
+                </div>            </section>
             <section className="paper-notes">
               <div className="paper-notes-heading">
                 <div>

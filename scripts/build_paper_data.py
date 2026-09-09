@@ -9,17 +9,19 @@ Run after downloading the three programme pages and the keyword index:
 from __future__ import annotations
 
 import argparse
-import hashlib
 import html
 import json
 import math
 import random
 import re
+from datetime import datetime
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Iterable
+import numpy as np
+
 
 
 @dataclass
@@ -161,7 +163,7 @@ def tokenize(paper: dict) -> list[str]:
     return [token for token in TOKEN_RE.findall(text) if token not in STOPWORDS]
 
 
-def add_projection(papers: list[dict]) -> None:
+def get_similarities(papers: list[dict]) -> list[list[float]]:
     docs = [Counter(tokenize(p)) for p in papers]
     document_frequency = Counter(token for doc in docs for token in doc)
     total = len(papers)
@@ -182,6 +184,12 @@ def add_projection(papers: list[dict]) -> None:
             small, large = (left, right) if len(left) < len(right) else (right, left)
             score = sum(value * large.get(token, 0.0) for token, value in small.items())
             similarities[i][j] = similarities[j][i] = score
+    get_most_similar_papers(papers, similarities)
+    return similarities
+    
+
+def add_projection(papers: list[dict], similarities: list[list|float]) -> None:
+    total = len(papers)
 
     means = [sum(row) / total for row in similarities]
     grand_mean = sum(means) / total
@@ -238,7 +246,15 @@ def build_stats(papers: list[dict]) -> dict:
         "prolificAuthors": [{"name": name, "count": count} for name, count in author_counts.most_common(12)],
     }
 
-
+def get_most_similar_papers(papers:list[dict], similarities: list[list[float]]) -> dict:
+    ids = np.array([paper["id"] for paper in papers])
+    for i,paper in enumerate(papers):
+        idx = np.argsort(similarities[i])[:-1][::-1] #Remove the own paper
+        top_papers = list(ids[idx[:5]]) # 5 most similar papers
+        paper["most_similar_ids"] = top_papers
+        paper["most_similar_scores"] = list(np.array(similarities[i])[idx[:5]])
+        
+    
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("pages", nargs=3, type=Path)
@@ -248,8 +264,9 @@ def main() -> None:
     keyword_map = parse_keywords(args.keywords)
     dates = ["2026-09-29", "2026-09-30", "2026-10-01"]
     papers = [paper for page, date in zip(args.pages, dates) for paper in parse_day(page, date, keyword_map)]
-    add_projection(papers)
-    payload = {"generatedAt": "2026-09-06", "papers": papers, "stats": build_stats(papers)}
+    similarities = get_similarities(papers)
+    add_projection(papers, similarities)
+    payload = {"generatedAt": str(datetime.now()), "papers": papers, "stats": build_stats(papers)}
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"Wrote {len(papers)} papers to {args.output}")

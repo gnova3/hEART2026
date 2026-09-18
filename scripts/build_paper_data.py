@@ -158,32 +158,49 @@ TOKEN_RE = re.compile(r"[a-z][a-z0-9-]{2,}")
 STOPWORDS = set("a an and are as at be been being by can could do does for from had has have how in into is it its may more most new no not of on one or other our over paper proposed results show study such than that the their these this through to two use used using was we were which while with within without".split())
 
 
-def tokenize(paper: dict) -> list[str]:
-    text = f"{paper['title']} {paper['title']} {paper['abstract']} {' '.join(paper['keywords'])}".lower()
-    return [token for token in TOKEN_RE.findall(text) if token not in STOPWORDS]
+def tokenize_text(text: str) -> list[str]:
+    return [token for token in TOKEN_RE.findall(text.lower()) if token not in STOPWORDS]
+
+def get_weighted_tokens(paper: dict, alpha_title=0.2, alpha_keywords=0.0, alpha_abstract=0.8) -> dict[str, float]:
+    counts = defaultdict(float)
+    
+    for token in tokenize_text(paper['title']):
+        counts[token] += alpha_title
+        
+    for token in tokenize_text(' '.join(paper['keywords'])):
+        counts[token] += alpha_keywords
+        
+    for token in tokenize_text(paper['abstract']):
+        counts[token] += alpha_abstract
+        
+    return counts
 
 
 def get_similarities(papers: list[dict]) -> list[list[float]]:
-    docs = [Counter(tokenize(p)) for p in papers]
+    docs = [get_weighted_tokens(p, alpha_title=0.0, alpha_keywords=0.3, alpha_abstract=0.7) for p in papers]    
     document_frequency = Counter(token for doc in docs for token in doc)
     total = len(papers)
     vectors: list[dict[str, float]] = []
     for doc in docs:
         vector = {
             token: (1 + math.log(count)) * math.log((1 + total) / (1 + document_frequency[token]))
-            for token, count in doc.items()
+            for token, count in doc.items() if count > 0
         }
         norm = math.sqrt(sum(value * value for value in vector.values())) or 1
         vectors.append({token: value / norm for token, value in vector.items()})
 
+    alpha_topic = 0.2
     similarities = [[0.0] * total for _ in range(total)]
     for i, left in enumerate(vectors):
-        similarities[i][i] = 1.0
-        for j in range(i):
-            right = vectors[j]
-            small, large = (left, right) if len(left) < len(right) else (right, left)
-            score = sum(value * large.get(token, 0.0) for token, value in small.items())
-            similarities[i][j] = similarities[j][i] = score
+            similarities[i][i] = 1.0
+            for j in range(i):
+                right = vectors[j]
+                small, large = (left, right) if len(left) < len(right) else (right, left)
+                score = sum(value * large.get(token, 0.0) for token, value in small.items())
+                if papers[i]["track"] == papers[j]["track"]:
+                    score += alpha_topic  
+                    # score *= topic_boost  # Option B: Multiply (e.g., if topic_boost = 1.2)
+                similarities[i][j] = similarities[j][i] = score
     get_most_similar_papers(papers, similarities)
     return similarities
     

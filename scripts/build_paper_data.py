@@ -177,7 +177,7 @@ def get_weighted_tokens(paper: dict, alpha_title=0.2, alpha_keywords=0.0, alpha_
 
 
 def get_similarities(papers: list[dict]) -> list[list[float]]:
-    docs = [get_weighted_tokens(p, alpha_title=0.0, alpha_keywords=0.3, alpha_abstract=0.7) for p in papers]    
+    docs = [get_weighted_tokens(p, alpha_title=0.0, alpha_keywords=0.2, alpha_abstract=0.8) for p in papers]    
     document_frequency = Counter(token for doc in docs for token in doc)
     total = len(papers)
     vectors: list[dict[str, float]] = []
@@ -189,7 +189,7 @@ def get_similarities(papers: list[dict]) -> list[list[float]]:
         norm = math.sqrt(sum(value * value for value in vector.values())) or 1
         vectors.append({token: value / norm for token, value in vector.items()})
 
-    alpha_topic = 0.2
+    alpha_topic = 0.03
     similarities = [[0.0] * total for _ in range(total)]
     for i, left in enumerate(vectors):
             similarities[i][i] = 1.0
